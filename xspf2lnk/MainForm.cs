@@ -94,6 +94,9 @@ namespace xspf2lnk
             // Getting all tracks as a collection
             var trackList = playlist.SelectNodes("//xspf:track", nsManager);
 
+            if (trackList == null)
+                return;
+
             // Setting the progress bar value to correspond to the track count
             _operationProgressBar.Invoke((MethodInvoker) delegate { _operationProgressBar.Maximum = trackList.Count; });
 
@@ -106,7 +109,16 @@ namespace xspf2lnk
                     return;
                 }
 
-                var filePath = new Uri(track["location"].InnerText).LocalPath;
+                var locationElement = track["location"];
+                // Skip non-valid and non-local entries
+                // That also skips relative paths
+                if (locationElement == null || !locationElement.InnerText.StartsWith("file:///"))
+                {
+                    _playlistWorker.ReportProgress(0, "Skipped");
+                    continue;
+                }
+
+                var filePath = new Uri(locationElement.InnerText).LocalPath;
                 var fileName = Path.GetFileName(filePath);
                 var linkAddress = new StringBuilder(_selectFolderTextBox.Text);
 
